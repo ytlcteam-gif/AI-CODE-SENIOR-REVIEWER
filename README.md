@@ -55,22 +55,40 @@ Puppeteer: A headless browser that turns your review into a PDF on-the-fly.
 Express-Rate-Limit: Protects your API from being abused.
 
 📂 Project Structure
+
 Plaintext
+
 ai-code-reviewer/
+
 ├── backend/                # The "Engine" (Node.js)
+
 │   ├── src/
+
 │   │   ├── controllers/    # Logic for Reviewing and PDF generation
+
 │   │   ├── services/       # AI (Gemini) and PDF (Puppeteer) logic
+
 │   │   ├── middleware/     # Safety checks (Validation & Rate Limiting)
+
 │   │   └── app.js          # Main entry point
+
 │   └── .env                # API Keys (PRIVATE)
-│
+
 ├── frontend/               # The "Face" (React)
+
 │   ├── src/
+
 │   │   ├── components/     # UI parts (Scorecard, Tabs, Editor)
+
 │   │   ├── services/       # Talking to the backend
+
 │   │   └── App.jsx         # Main dashboard layout
+
 │   └── tailwind.config.js  # Styling rules
+
+
+
+
 
 
 REVIEW AUDIT FOR BEGINNER IS VERY DIFFERENT 
