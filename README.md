@@ -119,7 +119,9 @@ REVIEW AUDIT FOR BEGINNER IS VERY DIFFERENT
 
 
 REVIEW AUDIT FOR SENIOR IS DIFFERENT MORE BRUTAL AND NO SUGERCOATING 
-![claudeproj2output3](https://github.com/user-attachments/assets/06188d70-df1c-48fa-aac3-c6ced1a5fb54)
+![claudeproj2output5](https://github.com/user-attachments/assets/ee6c86cb-9bd5-4b4f-8887-da0822b2e49f)
+
+
 
 
 
@@ -132,7 +134,8 @@ REVIEW AUDIT FOR SENIOR IS DIFFERENT MORE BRUTAL AND NO SUGERCOATING
 
 
 **********************************************CRITCAL ISSUES ***************************************
-![claudeproj2output3](https://github.com/user-attachments/assets/80912050-7627-4518-979b-7dcff201d6c7)
+![claudeproj2output6](https://github.com/user-attachments/assets/a3832905-7aad-46ed-aeb0-2aa99acc33b6)
+
 
 
 
@@ -145,6 +148,32 @@ REVIEW AUDIT FOR SENIOR IS DIFFERENT MORE BRUTAL AND NO SUGERCOATING
 
 *********************************************IMPROVEMENT****************************************************************
 ![claudeproj2output7](https://github.com/user-attachments/assets/2f1761c0-c7a4-47d9-bed3-6a2fcb222ae0)
+
+
+
+
+
+
+
+
+
+
+
+
+
+******(WAIT WAIT IT WILL GIVE YOU -2)***(PRODUCTION GRADE SOLUTION)*****************(SPECIALY FOR SENIOR)**************
+![claudeproj2output8](https://github.com/user-attachments/assets/f17bbf65-8f76-434d-8585-724372d86381)
+
+
+
+
+
+
+
+
+
+
+
 
 
 
