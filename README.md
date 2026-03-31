@@ -106,8 +106,8 @@ REVIEW AUDIT FOR BEGINNER IS VERY DIFFERENT
 
 
 
+![claudeproj2output4](https://github.com/user-attachments/assets/69dec60c-7ed2-4573-a38b-2f12ca1e37dc)
 
-![claudeproj2output3](https://github.com/user-attachments/assets/ffc4b15f-f829-4bf1-b9e1-fd8ef8eb6789)
 
 
 
