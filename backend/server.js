@@ -14,58 +14,53 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // ─── CORS ─────────────────────────────────────────────────────────────────────
-// ALLOWED_ORIGIN accepts comma-separated values. Two formats are supported:
+// Origins are loaded from ALLOWED_ORIGIN (comma-separated) with a hardcoded
+// fallback to the production frontend URL so the app works even if the env
+// var is misconfigured in the Vercel dashboard.
 //
-//   1. Exact origin:   https://ai-code-reviewer.vercel.app
-//   2. Wildcard:       *.vercel.app  (matches any subdomain)
+// Supports two formats:
+//   Exact:    https://ai-code-senior-reviewe.vercel.app
+//   Wildcard: *.vercel.app  (covers all Vercel preview deployments)
 //
-// Wildcard format covers Vercel preview deployments, which change URL on
-// every push (e.g. ai-code-reviewer-git-feature-abc123.vercel.app).
-// Without this, preview deployments are blocked by CORS — a common failure.
-//
-// Production example:
-//   ALLOWED_ORIGIN=https://ai-code-reviewer.vercel.app,*.vercel.app
-//
-// Responsibility: CORS is a server-level concern — configured here, not in routes.
-const rawOrigins = process.env.ALLOWED_ORIGIN
-  ? process.env.ALLOWED_ORIGIN.split(',').map((o) => o.trim())
-  : ['http://localhost:3000'];
+// CORS must be the FIRST middleware — before routes, before json parser.
+// Placing it after routes means OPTIONS preflight requests never get headers.
 
-/**
- * Returns true if `origin` is permitted by the allowlist.
- * Supports exact matches and wildcard subdomain patterns (*.domain.com).
- *
- * @param {string} origin
- * @returns {boolean}
- */
+const FALLBACK_ORIGIN = 'https://ai-code-senior-reviewe.vercel.app';
+
+const rawOrigins = process.env.ALLOWED_ORIGIN
+  ? [
+      ...process.env.ALLOWED_ORIGIN.split(',').map((o) => o.trim()),
+      FALLBACK_ORIGIN, // always include fallback even if env var is set
+    ]
+  : [FALLBACK_ORIGIN, 'http://localhost:3000'];
+
 const isOriginAllowed = (origin) => {
   for (const entry of rawOrigins) {
-    // Exact match
     if (entry === origin) return true;
-    // Wildcard: *.domain.com — matches any https://sub.domain.com
     if (entry.startsWith('*.')) {
-      const suffix = entry.slice(1); // ".domain.com"
-      if (origin.endsWith(suffix))  return true;
+      const suffix = entry.slice(1); // ".vercel.app"
+      if (origin.endsWith(suffix)) return true;
     }
   }
   return false;
 };
 
+// Must be registered BEFORE express.json() and all routes
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no Origin header (curl, Postman, server-to-server)
-      if (!origin)              return callback(null, true);
+      if (!origin) return callback(null, true); // curl, Postman, server-to-server
       if (isOriginAllowed(origin)) return callback(null, true);
-      // Return null (blocked) — do NOT throw. Throwing routes to error handler
-      // and returns 500. Blocked CORS should silently return no header, letting
-      // the browser show its own CORS error.
       return callback(null, false);
     },
-    methods:     ['GET', 'POST'],
-    credentials: false,
+    methods:     ['GET', 'POST', 'OPTIONS'],
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization'],
   })
 );
+
+// Handle OPTIONS preflight explicitly — required for credentialed requests
+app.options('*', cors());
 
 // ─── Core Middleware ───────────────────────────────────────────────────────────
 app.use(express.json({ limit: '50kb' })); // Block oversized payloads
