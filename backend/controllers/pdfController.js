@@ -317,13 +317,19 @@ const handleGeneratePdf = async (req, res, next) => {
     const reviewHtml = mdToHtml(review);
     const html       = buildHtml(code, reviewHtml, mode);
 
-    // Launch Puppeteer — one browser per request, destroyed in finally
+    // Launch Puppeteer — one browser per request, destroyed in finally.
+    // All flags below are required for containerised Linux (Railway/Render).
+    // Omitting any one of them can cause silent Chromium crashes in cloud.
     browser = await puppeteer.launch({
       headless: true,
       args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage', // Prevents /dev/shm OOM in containers
+        '--no-sandbox',                       // Required: no root user in containers
+        '--disable-setuid-sandbox',           // Required: pairs with --no-sandbox
+        '--disable-dev-shm-usage',            // Required: /dev/shm is too small in most containers (default 64MB)
+        '--disable-gpu',                      // Required: no GPU in cloud VMs
+        '--no-zygote',                        // Required: prevents zygote process crash on Railway
+        '--disable-accelerated-2d-canvas',    // Reduces GPU dependency
+        '--no-first-run',                     // Skip first-run setup dialogs
       ],
     });
 

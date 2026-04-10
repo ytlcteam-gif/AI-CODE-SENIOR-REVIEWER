@@ -44,6 +44,22 @@ const generateReview = async (prompt) => {
         throw new Error('Gemini returned an empty response.');
       }
       return text;
+    })
+    .catch((err) => {
+      // Normalise Gemini SDK errors before they reach errorHandler.
+      // SDK throws opaque GoogleGenerativeAIFetchError objects — surface
+      // the relevant signal so errorHandler can classify correctly.
+      const raw = err.message || '';
+
+      // Re-throw with a clean message errorHandler can pattern-match
+      if (raw.includes('429') || raw.toLowerCase().includes('quota')) {
+        throw new Error(`Gemini rate limit: ${raw}`);
+      }
+      if (raw.toLowerCase().includes('api key') || raw.toLowerCase().includes('api_key')) {
+        throw new Error(`Gemini API key invalid: ${raw}`);
+      }
+      // Pass through all other SDK errors unchanged
+      throw err;
     });
 
   const timeout = new Promise((_, reject) =>

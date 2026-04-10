@@ -1,0 +1,15 @@
+[build]
+builder = "NIXPACKS"
+# Explicit build command ensures Puppeteer downloads its Chromium binary
+# during build — not at runtime. Without this, the first PDF request fails.
+buildCommand = "npm install"
+
+[deploy]
+startCommand = "node server.js"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
+
+# IMPORTANT: Railway must be pointed at the /backend directory.
+# In Railway dashboard: Service → Settings → Root Directory → set to "backend"
+# If deploying from a monorepo root, Railway will otherwise look for server.js
+# at the repo root and fail.

@@ -1,15 +1,22 @@
 /**
  * api.js — Backend communication layer.
- * All HTTP calls live here. Components never call fetch/axios directly.
  *
- * Base URL: proxied through Vite dev server → http://localhost:5000
+ * Base URL resolution:
+ *   Local dev:   VITE_API_URL is unset → falls back to '/api'
+ *               Vite proxy (vite.config.js) forwards /api/* → localhost:5000
+ *   Production:  VITE_API_URL=https://your-backend.railway.app/api
+ *               Set this in Vercel → Project Settings → Environment Variables
+ *
+ * All HTTP calls live here. Components never call fetch/axios directly.
  */
 
 import axios from 'axios';
 
-// Shared client for JSON API calls
+const API_BASE = import.meta.env.VITE_API_URL || '/api';
+
+// ─── Shared JSON client ───────────────────────────────────────────────────────
 const client = axios.create({
-  baseURL: '/api',
+  baseURL: API_BASE,
   timeout: 35_000, // Slightly over backend's AI timeout (30s) to catch its error first
   headers: {
     'Content-Type': 'application/json',
@@ -32,7 +39,9 @@ export const submitReview = async (code, mode) => {
     const message =
       err.response?.data?.error ||
       (err.code === 'ECONNABORTED' ? 'Request timed out. The AI is taking too long.' : null) ||
-      (err.message === 'Network Error' ? 'Cannot reach the server. Is the backend running?' : null) ||
+      (err.message === 'Network Error'
+        ? 'Cannot reach the server. Is the backend running?'
+        : null) ||
       'Something went wrong. Please try again.';
 
     throw new Error(message);
@@ -42,7 +51,7 @@ export const submitReview = async (code, mode) => {
 /**
  * Request a PDF audit report from the backend and trigger a browser download.
  *
- * Uses a dedicated axios call with responseType: 'blob' — the shared client
+ * Uses a direct axios call with responseType: 'blob' — the shared client
  * cannot be reused here because binary responses must not be parsed as JSON.
  *
  * @param {string} code    - Original source code
@@ -54,22 +63,21 @@ export const submitReview = async (code, mode) => {
 export const downloadPdf = async (code, review, mode) => {
   try {
     const response = await axios.post(
-      '/api/generate-pdf',
+      `${API_BASE}/generate-pdf`,
       { code, review, mode },
       {
-        responseType: 'blob',   // Critical: tells axios to keep response as binary
-        timeout: 60_000,        // PDF generation is slower than review — allow 60s
+        responseType: 'blob',  // Critical: keeps response as binary — do not remove
+        timeout:      60_000,  // PDF generation is slower than review — allow 60s
       }
     );
 
-    // Create a temporary object URL from the blob and trigger download
     const url      = URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
     const anchor   = document.createElement('a');
     anchor.href    = url;
     anchor.download = 'code-review-audit.pdf';
     anchor.click();
 
-    // Revoke immediately after click — avoids memory leak from dangling object URLs
+    // Revoke immediately — prevents memory leak from dangling object URLs
     URL.revokeObjectURL(url);
 
   } catch (err) {
@@ -82,7 +90,7 @@ export const downloadPdf = async (code, review, mode) => {
         const parsed = JSON.parse(text);
         message      = parsed.error || message;
       } catch {
-        // Blob wasn't valid JSON — use fallback message
+        // Blob wasn't valid JSON — use default message
       }
     } else if (err.code === 'ECONNABORTED') {
       message = 'PDF generation timed out. Try again.';

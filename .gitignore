@@ -1,0 +1,23 @@
+# ─── Dependencies ────────────────────────────────────────────────────────────
+node_modules/
+**/node_modules/
+
+# ─── Environment Variables (NEVER commit these) ───────────────────────────────
+.env
+.env.local
+.env.production
+**/.env
+**/.env.local
+
+# ─── Build Output ─────────────────────────────────────────────────────────────
+frontend/dist/
+frontend/.vite/
+
+# ─── OS & Editor ──────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.vscode/
+*.log
+
+# ─── Puppeteer Chromium cache ─────────────────────────────────────────────────
+.cache/puppeteer/
