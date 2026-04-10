@@ -90,8 +90,12 @@ app.use((_req, res) => {
 app.use(errorHandler);
 
 // ─── Start Server ─────────────────────────────────────────────────────────────
-app.listen(PORT, () => {
-  console.log(`[Server] Running on http://localhost:${PORT} — mode: ${process.env.NODE_ENV}`);
-});
+// Guarded: Vercel runs this file as a serverless function and manages its own
+// HTTP server. app.listen() is only called in local dev / traditional hosting.
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(`[Server] Running on http://localhost:${PORT} — mode: ${process.env.NODE_ENV}`);
+  });
+}
 
 module.exports = app;

@@ -18,7 +18,11 @@
  *   is not a content pipeline).
  */
 
-const puppeteer = require('puppeteer');
+// puppeteer-core + @sparticuz/chromium: required for Vercel serverless.
+// Full `puppeteer` bundles Chromium (~300MB) which exceeds Vercel's 50MB limit.
+// @sparticuz/chromium is a serverless-optimised binary (~45MB compressed).
+const chromium = require('@sparticuz/chromium');
+const puppeteer = require('puppeteer-core');
 
 // ─── Markdown → HTML (Lightweight, PDF-only) ─────────────────────────────────
 // Full markdown parsing is NOT needed here. Gemini outputs predictable
@@ -317,20 +321,15 @@ const handleGeneratePdf = async (req, res, next) => {
     const reviewHtml = mdToHtml(review);
     const html       = buildHtml(code, reviewHtml, mode);
 
-    // Launch Puppeteer — one browser per request, destroyed in finally.
-    // All flags below are required for containerised Linux (Railway/Render).
-    // Omitting any one of them can cause silent Chromium crashes in cloud.
+    // Launch Puppeteer with @sparticuz/chromium for Vercel serverless.
+    // chromium.args already includes all required flags for Lambda/serverless
+    // environments (--no-sandbox, --disable-dev-shm-usage, etc.).
+    // executablePath() returns the path to the bundled serverless Chromium binary.
     browser = await puppeteer.launch({
-      headless: true,
-      args: [
-        '--no-sandbox',                       // Required: no root user in containers
-        '--disable-setuid-sandbox',           // Required: pairs with --no-sandbox
-        '--disable-dev-shm-usage',            // Required: /dev/shm is too small in most containers (default 64MB)
-        '--disable-gpu',                      // Required: no GPU in cloud VMs
-        '--no-zygote',                        // Required: prevents zygote process crash on Railway
-        '--disable-accelerated-2d-canvas',    // Reduces GPU dependency
-        '--no-first-run',                     // Skip first-run setup dialogs
-      ],
+      args:           chromium.args,
+      executablePath: await chromium.executablePath(),
+      headless:       chromium.headless,
+      defaultViewport: chromium.defaultViewport,
     });
 
     const page = await browser.newPage();
