@@ -46,20 +46,31 @@ const generateReview = async (prompt) => {
       return text;
     })
     .catch((err) => {
-      // Normalise Gemini SDK errors before they reach errorHandler.
-      // SDK throws opaque GoogleGenerativeAIFetchError objects — surface
-      // the relevant signal so errorHandler can classify correctly.
+      // Log the full SDK error to Vercel function logs so the real cause is
+      // visible in the dashboard even when production hides it from the client.
+      console.error('[geminiService] Gemini SDK error:', err.message);
+      console.error('[geminiService] Error status:', err.status ?? 'n/a');
+      console.error('[geminiService] Error details:', JSON.stringify(err.errorDetails ?? err, null, 2));
+
       const raw = err.message || '';
 
       // Re-throw with a clean message errorHandler can pattern-match
-      if (raw.includes('429') || raw.toLowerCase().includes('quota')) {
+      if (raw.includes('429') || raw.toLowerCase().includes('quota') || raw.toLowerCase().includes('resource has been exhausted')) {
         throw new Error(`Gemini rate limit: ${raw}`);
       }
-      if (raw.toLowerCase().includes('api key') || raw.toLowerCase().includes('api_key')) {
+      if (
+        raw.toLowerCase().includes('api key') ||
+        raw.toLowerCase().includes('api_key') ||
+        raw.toLowerCase().includes('invalid_argument') ||
+        raw.toLowerCase().includes('api key not valid')
+      ) {
         throw new Error(`Gemini API key invalid: ${raw}`);
       }
-      // Pass through all other SDK errors unchanged
-      throw err;
+      if (raw.toLowerCase().includes('not found') || raw.toLowerCase().includes('404')) {
+        throw new Error(`Gemini model not found: ${raw}`);
+      }
+      // Pass through all other SDK errors with the original message preserved
+      throw new Error(`Gemini error: ${raw}`);
     });
 
   const timeout = new Promise((_, reject) =>

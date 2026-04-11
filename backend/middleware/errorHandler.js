@@ -17,11 +17,9 @@
  * @param {Function} _next  — Required 4th param so Express identifies this as error middleware
  */
 const errorHandler = (err, req, res, _next) => {
-  const isDev = process.env.NODE_ENV === 'development';
-
-  // Always log server-side with full context
+  // Always log full error to Vercel function logs (visible in dashboard)
   console.error(`[ErrorHandler] ${req.method} ${req.path} — ${err.message}`);
-  if (isDev) console.error(err.stack);
+  console.error(err.stack);
 
   const msg = err.message || '';
 
@@ -58,15 +56,23 @@ const errorHandler = (err, req, res, _next) => {
   }
 
   // ── 4. Gemini API key invalid or missing ───────────────────────────────────
-  // SDK throws "API key not valid" or startup check throws with GEMINI_API_KEY
   if (
     msg.includes('GEMINI_API_KEY') ||
     msg.toLowerCase().includes('api key not valid') ||
-    msg.toLowerCase().includes('api_key_invalid')
+    msg.toLowerCase().includes('api_key_invalid') ||
+    msg.toLowerCase().includes('api key invalid')
   ) {
     return res.status(500).json({
       success: false,
-      error: 'Server configuration error. Contact the administrator.',
+      error: 'Server configuration error: Gemini API key is invalid or missing.',
+    });
+  }
+
+  // ── 4b. Gemini model not found ─────────────────────────────────────────────
+  if (msg.toLowerCase().includes('model not found')) {
+    return res.status(500).json({
+      success: false,
+      error: 'Server configuration error: Gemini model name is invalid.',
     });
   }
 
@@ -98,10 +104,12 @@ const errorHandler = (err, req, res, _next) => {
     });
   }
 
-  // ── 8. Generic fallback ────────────────────────────────────────────────────
+  // ── 8. Generic fallback ───────────────────────────────────────────────────
+  // Include the actual message in production so the frontend shows something
+  // actionable. Stack traces are never sent — only the message string.
   return res.status(500).json({
     success: false,
-    error: isDev ? msg : 'An unexpected error occurred. Please try again.',
+    error: msg || 'An unexpected error occurred. Please try again.',
   });
 };
 
