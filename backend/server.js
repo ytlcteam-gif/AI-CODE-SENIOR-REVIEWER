@@ -6,7 +6,6 @@
 require('dotenv').config();
 
 const express = require('express');
-const cors = require('cors');
 const reviewRoutes = require('./routes/reviewRoutes');
 const errorHandler = require('./middleware/errorHandler');
 
@@ -14,53 +13,51 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // ─── CORS ─────────────────────────────────────────────────────────────────────
-// Origins are loaded from ALLOWED_ORIGIN (comma-separated) with a hardcoded
-// fallback to the production frontend URL so the app works even if the env
-// var is misconfigured in the Vercel dashboard.
+// Manual headers instead of the cors library — more predictable on Vercel
+// serverless where the cors library's function-based origin has known quirks.
 //
-// Supports two formats:
-//   Exact:    https://ai-code-senior-reviewe.vercel.app
-//   Wildcard: *.vercel.app  (covers all Vercel preview deployments)
+// Policy:
+//   - Any *.vercel.app subdomain is allowed (covers all preview + prod URLs).
+//   - localhost variants are allowed for local dev.
+//   - Additional origins can be injected via ALLOWED_ORIGIN (comma-separated).
 //
-// CORS must be the FIRST middleware — before routes, before json parser.
-// Placing it after routes means OPTIONS preflight requests never get headers.
+// MUST be the FIRST middleware — OPTIONS preflight must be answered before
+// express.json() or any route handler runs.
 
-const FALLBACK_ORIGIN = 'https://ai-code-senior-reviewe.vercel.app';
+const EXTRA_ORIGINS = process.env.ALLOWED_ORIGIN
+  ? process.env.ALLOWED_ORIGIN.split(',').map((o) => o.trim())
+  : [];
 
-const rawOrigins = process.env.ALLOWED_ORIGIN
-  ? [
-      ...process.env.ALLOWED_ORIGIN.split(',').map((o) => o.trim()),
-      FALLBACK_ORIGIN, // always include fallback even if env var is set
-    ]
-  : [FALLBACK_ORIGIN, 'http://localhost:3000'];
+const EXPLICIT_ORIGINS = new Set([
+  'https://ai-code-senior-reviewe.vercel.app', // production frontend — hardcoded fallback
+  'http://localhost:3000',
+  'http://localhost:5173',
+  ...EXTRA_ORIGINS,
+]);
 
-const isOriginAllowed = (origin) => {
-  for (const entry of rawOrigins) {
-    if (entry === origin) return true;
-    if (entry.startsWith('*.')) {
-      const suffix = entry.slice(1); // ".vercel.app"
-      if (origin.endsWith(suffix)) return true;
-    }
+app.use((req, res, next) => {
+  const origin = req.headers.origin || '';
+
+  // Allow if: no origin (curl/Postman), any *.vercel.app, or explicit list
+  const isAllowed =
+    !origin ||
+    origin.endsWith('.vercel.app') ||
+    EXPLICIT_ORIGINS.has(origin);
+
+  if (isAllowed && origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Vary', 'Origin');
   }
-  return false;
-};
 
-// Must be registered BEFORE express.json() and all routes
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      if (!origin) return callback(null, true); // curl, Postman, server-to-server
-      if (isOriginAllowed(origin)) return callback(null, true);
-      return callback(null, false);
-    },
-    methods:     ['GET', 'POST', 'OPTIONS'],
-    credentials: true,
-    allowedHeaders: ['Content-Type', 'Authorization'],
-  })
-);
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Max-Age', '86400'); // cache preflight 24h
 
-// Handle OPTIONS preflight explicitly — required for credentialed requests
-app.options('*', cors());
+  // Answer OPTIONS preflight immediately — no route handler needed
+  if (req.method === 'OPTIONS') return res.status(204).end();
+
+  next();
+});
 
 // ─── Core Middleware ───────────────────────────────────────────────────────────
 app.use(express.json({ limit: '50kb' })); // Block oversized payloads

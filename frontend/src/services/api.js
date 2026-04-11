@@ -12,7 +12,8 @@
 
 import axios from 'axios';
 
-const API_BASE = import.meta.env.VITE_API_URL || '/api';
+// Strip any accidental trailing slash — prevents double-slash in URLs like //review
+const API_BASE = (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '');
 
 // ─── Shared JSON client ───────────────────────────────────────────────────────
 const client = axios.create({
